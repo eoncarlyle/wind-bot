@@ -36,19 +36,18 @@
 (defn vestasPowerCurve
   "Input: v, wind velocity in units m/s. Returns: power in units kW."
   [v]
-  (def lead-vec
-    [1588.39  0 -1884.05 1501.41 -557.88 119.619
-     -15.5994 1.22303 -0.0530215 0.000976165])
-  (def trail-vec [-15959.1 0 765.772 -83.7096 2.57538])
-  (def peak 3073)
-  (cond
-    (and (<= v 3)) 0
-    (and (> v 3) (<= v 11)) (reduce + (map * lead-vec (map #(exp v %1) (range))))
-    (and (> v 11) (<= v 12.5)) (reduce + (map * trail-vec (map #(exp v %1) (range))))
-    (> v 12.5) 3075))
+  (
+    let [lead-vec [1588.39  0 -1884.05 1501.41 -557.88 119.619
+      -15.5994 1.22303 -0.0530215 0.000976165]
+      trail-vec [-15959.1 0 765.772 -83.7096 2.57538] 
+      peak 3073]
+      (cond
+        (and (<= v 3)) 0
+        (and (> v 3) (<= v 11)) (reduce + (map * lead-vec (map #(exp v %1) (range))))
+        (and (> v 11) (<= v 12.5)) (reduce + (map * trail-vec (map #(exp v %1) (range))))
+        (> v 12.5) peak)))
 
 ;;> String Handling
-
 (defn parse-int
   [s]
   (Integer. (re-find  #"\d+" s)))
@@ -63,16 +62,18 @@
 (defn linesback
   "Returns the number of lines back neccesary for n elapsed hours of windspeed data"
   ([n hyperlink]
-   (def find-vec (re-find #"(^(\d{4})\s(\d{2})\s(\d{2})\s(\d{2})\s(\d{2}))" (last (lines 3 hyperlink))))
-   (def arg-vec (map parse-int (rest (rest find-vec))))
-   (def search-date (clj-time.core/minus (eval (concat '(clj-time.core/date-time) arg-vec)) (clj-time.core/hours n)))
-   (linesback n hyperlink search-date 4))
+   (let [find-vec (re-find #"(^(\d{4})\s(\d{2})\s(\d{2})\s(\d{2})\s(\d{2}))" (last (lines 3 hyperlink)))
+    arg-vec (map parse-int (rest (rest find-vec)))
+    search-date (clj-time.core/minus (eval (concat '(clj-time.core/date-time) arg-vec)) (clj-time.core/hours n))]
+   (linesback n hyperlink search-date 4)))
 
   ([n hyperlink search-date line]
-   (def find-vec (re-find #"(^(\d{4})\s(\d{2})\s(\d{2})\s(\d{2})\s(\d{2}))" (last (lines line hyperlink))))
-   (def arg-vec (map parse-int (rest (rest find-vec))))
-   (def cur-date (eval (concat '(clj-time.core/date-time) arg-vec)))
-   (if (= cur-date search-date) line (linesback n hyperlink search-date (inc line)))))
+   (let
+   [find-vec (re-find #"(^(\d{4})\s(\d{2})\s(\d{2})\s(\d{2})\s(\d{2}))" (last (lines line hyperlink)))
+    arg-vec (map parse-int (rest (rest find-vec)))
+    cur-date (eval (concat '(clj-time.core/date-time) arg-vec)) ]
+   
+   (if (= cur-date search-date) line (linesback n hyperlink search-date (inc line)))))) 
 
 
 (defn txtPower
@@ -116,6 +117,7 @@
   
   (string/join [first-sentence second-sentence-first-phrase (local-tweet-dict :prephrase) (str num) (local-tweet-dict :postphrase)] ))
 
+
 (defn status-update
   [tweet]
   (println "generated tweet is :" tweet)
@@ -137,5 +139,8 @@
 
 (defn -main
   [& args]
-  (overtone/every (* 1000 60 60 8) #(println (let [key (nth (keys buoy-map) (rand-int (count (keys buoy-map)))) link ((buoy-map key) :link)]
-    (status-update (tweet-maker buoy-map key (txtPower vestasPowerCurve (linesback 12 link) link))))) my-pool))
+  (overtone/every (* 1000 60 60 8) #(println (let [key (nth (keys buoy-map) 
+    (rand-int (count (keys buoy-map)))) link ((buoy-map key) :link)]
+    (print (tweet-maker buoy-map key 
+    (txtPower vestasPowerCurve (linesback 12 link) link))))) my-pool))
+    
