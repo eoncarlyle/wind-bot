@@ -125,4 +125,3 @@
     (rand-int (count (keys buoy-map)))) link ((buoy-map key) :link)]
     (status-update (tweet-maker buoy-map key
     (txtPower vestasPowerCurve (linesback 12 link) link))))) my-pool))
-
